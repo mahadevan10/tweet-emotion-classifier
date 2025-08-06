@@ -7,7 +7,7 @@ import numpy as np
 # Load your emotion classification model
 # Replace 'your-username/your-model-name' with your actual model path on Hugging Face
 # Or use a local path if you're uploading model files to the space
-MODEL_NAME = "j-hartmann/emotion-english-distilroberta-base"  # Example model - replace with yours
+MODEL_NAME = "./sentiment_model"  # Example model - replace with yours
 
 def load_model():
     """Load the emotion classification model"""
