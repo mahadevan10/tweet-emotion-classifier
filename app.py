@@ -5,7 +5,7 @@ import re
 import numpy as np
 
 # Load your emotion classification model
-MODEL_NAME = "mahadevan10/tweet-emotion-classifier"
+MODEL_NAME = "sentiments_model"
 
 def load_model():
     """Load the emotion classification model"""
