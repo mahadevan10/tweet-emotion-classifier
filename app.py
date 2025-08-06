@@ -4,10 +4,14 @@ import torch.nn.functional as F
 import gradio as gr
 
 # ✅ Load model and tokenizer from your folder
-model_path = "sentiments_model"
 
-model = AutoModelForSequenceClassification.from_pretrained(model_path)
-tokenizer = AutoTokenizer.from_pretrained(model_path)
+import os
+
+model_path = os.path.join(os.path.dirname(__file__), "sentiments_model")
+
+tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
+model = AutoModelForSequenceClassification.from_pretrained(model_path, local_files_only=True)
+
 model.eval()
 
 # Label mapping — change based on your training
