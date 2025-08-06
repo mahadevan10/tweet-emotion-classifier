@@ -5,7 +5,7 @@ import re
 import numpy as np
 
 # Load your emotion classification model
-MODEL_NAME = "mahadevan10/tweet-emotion-classifier"
+MODEL_NAME = "mahadevan10/tweet-emotion-classifier/sentiment_model"
 
 def load_model():
     """Load the emotion classification model"""
@@ -137,7 +137,20 @@ def analyze_tweet(tweet_text):
     Main function called by Gradio interface
     """
     result_text, confidence_scores = classify_emotion(tweet_text)
-    return result_text, confidence_scores
+    
+    # Create a detailed text output for all emotions
+    if confidence_scores:
+        emotions_text = "Detailed Emotion Breakdown:\n\n"
+        sorted_emotions = sorted(confidence_scores.items(), key=lambda x: x[1], reverse=True)
+        
+        for emotion, score in sorted_emotions:
+            percentage = score * 100
+            bar = "█" * int(percentage / 5)  # Visual bar
+            emotions_text += f"{emotion:12} {percentage:6.2f}% {bar}\n"
+    else:
+        emotions_text = "No emotions detected."
+    
+    return result_text, emotions_text
 
 # Create example tweets for users to try
 example_tweets = [
@@ -178,26 +191,26 @@ def create_interface():
             
             with gr.Column(scale=2):
                 result_output = gr.Markdown(label="📊 Analysis Results")
-                confidence_plot = gr.BarPlot(
-                    label="🎯 Confidence Scores",
-                    x="Emotion",
-                    y="Confidence",
-                    color="Emotion",
-                    title="Emotion Classification Confidence",
-                    height=400
+                
+                # Simple text output for emotions (always works)
+                emotions_output = gr.Textbox(
+                    label="🎭 All Emotions with Scores",
+                    lines=8,
+                    max_lines=10,
+                    interactive=False
                 )
         
         # Event handlers
         analyze_btn.click(
             fn=analyze_tweet,
             inputs=[tweet_input],
-            outputs=[result_output, confidence_plot]
+            outputs=[result_output, emotions_output]
         )
         
         tweet_input.submit(  # Allow Enter key to submit
             fn=analyze_tweet,
             inputs=[tweet_input],
-            outputs=[result_output, confidence_plot]
+            outputs=[result_output, emotions_output]
         )
         
         # Footer
@@ -218,4 +231,3 @@ if __name__ == "__main__":
         server_name="0.0.0.0",  # Important for Hugging Face Spaces
         server_port=7860  # Default port for Hugging Face Spaces
     )
-    
