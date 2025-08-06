@@ -5,22 +5,22 @@ import re
 import numpy as np
 
 # Load your emotion classification model
-MODEL_NAME = "mahadevan10/tweet-emotion-classifier/sentiment_model"
+MODEL_NAME = "mahadevan10/tweet-emotion-classifier"
 
 def load_model():
     """Load the emotion classification model"""
     try:
         print(f"Loading model: {MODEL_NAME}")
-        # Try loading your specific model
+        # Load your specific sentiment model (positive, neutral, negative)
         classifier = pipeline(
             "text-classification",
             model=MODEL_NAME,
             return_all_scores=True
         )
-        print("Model loaded successfully!")
+        print("Your 3-class sentiment model loaded successfully!")
         return classifier
     except Exception as e:
-        print(f"Error loading model {MODEL_NAME}: {e}")
+        print(f"Error loading your model {MODEL_NAME}: {e}")
         print("Trying without return_all_scores...")
         try:
             # Try without return_all_scores
@@ -28,22 +28,19 @@ def load_model():
                 "text-classification",
                 model=MODEL_NAME
             )
-            print("Model loaded without return_all_scores!")
+            print("Your model loaded without return_all_scores!")
             return classifier
         except Exception as e2:
-            print(f"Second attempt failed: {e2}")
-            print("Using fallback model...")
-            # Fallback to a working model for demo
-            classifier = pipeline(
-                "text-classification",
-                model="j-hartmann/emotion-english-distilroberta-base",
-                return_all_scores=True
-            )
-            print("Fallback model loaded!")
-            return classifier
+            print(f"Could not load your model: {e2}")
+            return None  # Don't use fallback - we want YOUR model only
 
 # Initialize the model
 emotion_classifier = load_model()
+
+# Check if model loaded properly
+if emotion_classifier is None:
+    print("ERROR: Could not load your model! Please check the model name and permissions.")
+    print("Make sure your model 'mahadevan10/tweet-emotion-classifier' is public and accessible.")
 
 def preprocess_tweet(tweet):
     """
@@ -62,10 +59,13 @@ def preprocess_tweet(tweet):
 
 def classify_emotion(tweet_text):
     """
-    Classify the emotion of a tweet
+    Classify the sentiment of a tweet (positive, neutral, negative)
     """
     try:
         print(f"Analyzing tweet: {tweet_text[:50]}...")
+        
+        if emotion_classifier is None:
+            return "❌ Model not loaded. Please check the model name and try again.", {}
         
         if not tweet_text or not tweet_text.strip():
             return "Please enter a tweet to analyze! 🐦", {}
@@ -89,16 +89,20 @@ def classify_emotion(tweet_text):
             print(f"Emotions extracted: {emotions}")
             
             # Create a formatted output
-            output_text = "🎭 **Emotion Analysis Results:**\n\n"
+            output_text = "🎭 **Sentiment Analysis Results:**\n\n"
             output_text += f"**Tweet:** {tweet_text[:100]}{'...' if len(tweet_text) > 100 else ''}\n\n"
             
             # Handle single prediction vs multiple scores
             if isinstance(emotions, dict):
                 # Single prediction format
-                emotion_name = emotions.get('label', 'Unknown').title()
+                sentiment = emotions.get('label', 'Unknown').title()
                 confidence = emotions.get('score', 0)
-                output_text += f"🏆 **Primary Emotion: {emotion_name}** ({confidence:.2%})\n"
-                confidence_dict = {emotion_name: confidence}
+                
+                # Add emoji based on sentiment
+                emoji = "😊" if "positive" in sentiment.lower() else "😐" if "neutral" in sentiment.lower() else "😔"
+                output_text += f"🏆 **Primary Sentiment: {sentiment} {emoji}** ({confidence:.2%})\n"
+                confidence_dict = {sentiment: confidence}
+                
             elif isinstance(emotions, list):
                 # Multiple predictions format
                 # Sort emotions by confidence
@@ -108,14 +112,17 @@ def classify_emotion(tweet_text):
                 confidence_dict = {}
                 
                 for i, emotion in enumerate(sorted_emotions):
-                    emotion_name = emotion.get('label', 'Unknown').title()
+                    sentiment = emotion.get('label', 'Unknown').title()
                     confidence = emotion.get('score', 0)
-                    confidence_dict[emotion_name] = confidence
+                    confidence_dict[sentiment] = confidence
+                    
+                    # Add emoji based on sentiment
+                    emoji = "😊" if "positive" in sentiment.lower() else "😐" if "neutral" in sentiment.lower() else "😔"
                     
                     if i == 0:  # Highest confidence
-                        output_text += f"🏆 **Primary Emotion: {emotion_name}** ({confidence:.2%})\n"
+                        output_text += f"🏆 **Primary Sentiment: {sentiment} {emoji}** ({confidence:.2%})\n"
                     else:
-                        output_text += f"   {emotion_name}: {confidence:.2%}\n"
+                        output_text += f"   {sentiment} {emoji}: {confidence:.2%}\n"
             else:
                 return f"Unexpected result format: {type(emotions)}", {}
             
@@ -124,7 +131,7 @@ def classify_emotion(tweet_text):
             return output_text, confidence_dict
         else:
             print(f"No results or empty results: {results}")
-            return "No emotion detected. Please try a different tweet. ⚠️", {}
+            return "No sentiment detected. Please try a different tweet. ⚠️", {}
             
     except Exception as e:
         print(f"Error in classify_emotion: {str(e)}")
@@ -138,17 +145,21 @@ def analyze_tweet(tweet_text):
     """
     result_text, confidence_scores = classify_emotion(tweet_text)
     
-    # Create a detailed text output for all emotions
+    # Create a detailed text output for all sentiments (should be 3: positive, neutral, negative)
     if confidence_scores:
-        emotions_text = "Detailed Emotion Breakdown:\n\n"
+        emotions_text = "Detailed Sentiment Breakdown:\n\n"
         sorted_emotions = sorted(confidence_scores.items(), key=lambda x: x[1], reverse=True)
         
-        for emotion, score in sorted_emotions:
+        for sentiment, score in sorted_emotions:
             percentage = score * 100
-            bar = "█" * int(percentage / 5)  # Visual bar
-            emotions_text += f"{emotion:12} {percentage:6.2f}% {bar}\n"
+            bar_length = int(percentage / 5)  # Scale for visual bar
+            bar = "█" * bar_length
+            
+            # Add emoji
+            emoji = "😊" if "positive" in sentiment.lower() else "😐" if "neutral" in sentiment.lower() else "😔"
+            emotions_text += f"{sentiment} {emoji:2} {percentage:6.2f}% {bar}\n"
     else:
-        emotions_text = "No emotions detected."
+        emotions_text = "No sentiments detected."
     
     return result_text, emotions_text
 
@@ -167,8 +178,8 @@ example_tweets = [
 # Create the Gradio interface
 def create_interface():
     with gr.Blocks(theme=gr.themes.Soft(), title="Tweet Emotion Classifier") as interface:
-        gr.HTML("<h1 style='text-align: center; color: #1DA1F2;'>🐦 Mahadevan's Tweet Emotion Classifier 🎭</h1>")
-        gr.HTML("<p style='text-align: center; font-size: 18px;'>Analyze emotions in tweets using my custom AI model! Enter any tweet below and discover its emotional tone.</p>")
+        gr.HTML("<h1 style='text-align: center; color: #1DA1F2;'>🐦 Mahadevan's Tweet Sentiment Classifier 🎭</h1>")
+        gr.HTML("<p style='text-align: center; font-size: 18px;'>Analyze sentiment in tweets (Positive, Neutral, Negative) using my custom AI model!</p>")
         
         with gr.Row():
             with gr.Column(scale=2):
