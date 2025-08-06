@@ -1,36 +1,32 @@
-import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import torch
 import torch.nn.functional as F
 import gradio as gr
 
-# ✅ Load model and tokenizer from your folder
+# ✅ Make sure this folder name matches exactly
+model_path = "sentiment_model"
 
-import os
-
-model_path = os.path.join(os.path.dirname(__file__), "sentiments_model")
-
-tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
-model = AutoModelForSequenceClassification.from_pretrained(model_path, local_files_only=True)
-
+# Load tokenizer and model
+tokenizer = AutoTokenizer.from_pretrained(model_path)
+model = AutoModelForSequenceClassification.from_pretrained(model_path)
 model.eval()
 
-# Label mapping — change based on your training
+# Optional label mapping (update if your model has different labels)
 id2label = {0: "Negative", 1: "Neutral", 2: "Positive"}
 
-def classify_tweet(tweet):
-    inputs = tokenizer(tweet, return_tensors="pt", truncation=True, padding=True)
+def classify_tweet(text):
+    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True)
     with torch.no_grad():
         outputs = model(**inputs)
         probs = F.softmax(outputs.logits, dim=1)
-        predicted_class = torch.argmax(probs, dim=1).item()
+        predicted = torch.argmax(probs, dim=1).item()
         confidence = torch.max(probs).item()
+    return f"{id2label[predicted]} ({confidence:.2%} confidence)"
 
-    return f"{id2label[predicted_class]} ({confidence:.2%} confidence)"
-
-# ✅ Create Gradio interface
-iface = gr.Interface(fn=classify_tweet, 
-                     inputs=gr.Textbox(lines=2, placeholder="Enter a tweet here..."),
-                     outputs="text",
-                     title="Tweet Sentiment Classifier")
-
-iface.launch()
+# Gradio interface
+gr.Interface(
+    fn=classify_tweet,
+    inputs=gr.Textbox(lines=3, placeholder="Enter a tweet..."),
+    outputs="text",
+    title="Tweet Sentiment Classifier"
+).launch()
