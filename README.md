@@ -1,14 +1,4 @@
----
-title: Tweet Emotion Classifier
-emoji: 🌍
-colorFrom: gray
-colorTo: green
-sdk: gradio
-sdk_version: 5.41.0
-app_file: app.py
-pinned: false
-license: apache-2.0
----
+
 # 🧠 Tweet Sentiment Classifier
 
 This app uses a fine-tuned Transformer model (based on RoBERTa) to classify tweets into **Positive**, **Neutral**, or **Negative** sentiment.
