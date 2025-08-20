@@ -17,7 +17,7 @@ This app uses a fine-tuned Transformer model (based on RoBERTa) to classify twee
 - Deployed for free on Hugging Face Spaces
 
 ### 🧪 Try it yourself!
-Just enter a tweet in the textbox and get instant sentiment predictions.
+Just enter a tweet in the textbox and get instant sentiment predictions. ( https://huggingface.co/spaces/mahadevan10/tweet-emotion-classifier )
 
 ### 📁 Model Details:
 - Custom weights to improve Neutral detection
